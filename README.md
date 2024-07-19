@@ -44,27 +44,22 @@ git clone https://github.com/thegenetic/crtsh-domain-extractor.git && cd crtsh-d
 
 1\. **Basic Usage:**
 ```bash\
-   ./crtsh_extractor.sh -d example.com
+./crtsh_extractor.sh -d example.com -o output.txt
 ```
 
-2\. **With Output File:**
+2\. **With Expired Flag:**
 ```bash\
-   ./crtsh_extractor.sh -d example.com -o output.txt
+./crtsh_extractor.sh -d example.com --expired
 ```
 
-3\. **With Expired Flag:**
+3\. **With Threads:**
 ```bash\
-   ./crtsh_extractor.sh -d example.com --expired
+./crtsh_extractor.sh -d example.com -t 4
 ```
 
-4\. **With Threads:**
+4\. **Help Option:**
 ```bash\
-   ./crtsh_extractor.sh -d example.com -t 4
-```
-
-5\. **Help Option:**
-```bash\
-   ./crtsh_extractor.sh -h
+./crtsh_extractor.sh -h
 ```
 
 ## Author

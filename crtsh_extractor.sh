@@ -1,108 +1,75 @@
 #!/bin/bash
 
-# Function to display the banner
-show_banner() {
-    echo "========================================="
-    echo "        CRT.SH DOMAIN EXTRACTOR TOOL     "
-    echo "        by Dipesh Paul aka thegenetic    "
-    echo "========================================="
-}
+# CRT.SH Domain Extractor Tool
+# by Dipesh Paul aka thegenetic
 
-# Function to display help message
 show_help() {
-    show_banner
-    echo "Usage: $0 [-d domain/org_name] [-o output_file] [--expired] [-t threads]"
+    echo "========================================="
+    echo "        CRT.SH DOMAIN EXTRACTOR TOOL"
+    echo "        by Dipesh Paul aka thegenetic"
+    echo "========================================="
+    echo ""
+    echo "Usage: ./crtsh_extractor.sh -d domain/org_name -o output_file [--expired] [-t threads]"
     echo ""
     echo "Options:"
-    echo "  -d, --domain      Specify the domain or organization name."
-    echo "  -o, --output      Specify the output file location. If not provided, output to stdout."
-    echo "  --expired         Include this flag to exclude expired certificates."
-    echo "  -t, --threads     Number of threads to use for concurrent processing (default is 1)."
-    echo "  -h, --help        Show this help message."
+    echo "  -d, --domain    Specify the domain or organization name (e.g., example.com). This option is required."
+    echo "  -o, --output    Specify the output file location. This option is required."
+    echo "  --expired       Include this flag to exclude expired certificates from the results."
+    echo "  -t, --threads   Number of threads to use for concurrent processing (default is 1)."
+    echo "  -h, --help      Show the help message and exit."
     echo ""
-    echo "- by Dipesh Paul aka thegenetic"
 }
 
 # Default values
-domain=""
-output_file=""
-exclude_expired=false
 threads=1
+expired=""
 
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -d|--domain)
-            domain="$2"
-            shift 2
-            ;;
-        -o|--output)
-            output_file="$2"
-            shift 2
-            ;;
-        --expired)
-            exclude_expired=true
-            shift
-            ;;
-        -t|--threads)
-            threads="$2"
-            shift 2
-            ;;
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            show_help
-            exit 1
-            ;;
+        -d|--domain) domain="$2"; shift ;;
+        -o|--output) output_file="$2"; shift ;;
+        --expired) expired="--exclude=expired" ;;
+        -t|--threads) threads="$2"; shift ;;
+        -h|--help) show_help; exit 0 ;;
+        *) echo "Unknown parameter passed: $1"; show_help; exit 1 ;;
     esac
+    shift
 done
 
-# Check if domain is provided
-if [[ -z "$domain" ]]; then
-    echo "Error: Domain/organization name must be specified."
+# Check for required parameters
+if [[ -z "$domain" || -z "$output_file" ]]; then
+    echo "Error: Domain and output file parameters are required."
     show_help
     exit 1
 fi
 
-# Show the banner at the start
-show_banner
+# Display banner
+echo "========================================="
+echo "        CRT.SH DOMAIN EXTRACTOR TOOL"
+echo "        by Dipesh Paul aka thegenetic"
+echo "========================================="
 
-# Build the query URL
-url="https://crt.sh/?q=${domain}&group=none&output=json"
-if $exclude_expired; then
-    url="${url}&exclude=expired"
-fi
+# Create a temporary file for storing the fetched data
+temp_file=$(mktemp)
 
-# Function to process the JSON response and extract 'common name'
-process_response() {
-    local response="$1"
-    echo "$response" | jq -r '.[].common_name' | sed 's/^*\.//' | sort -u | grep "\.${domain}$"
-}
+# Fetch the data from crt.sh
+url="https://crt.sh/?q=${domain}&group=none&output=json${expired}"
+echo "Fetching data from: $url"
+curl -s "$url" | jq -r '.[] | .common_name' | sort -u > "$temp_file"
 
-# Fetch and process the data
-fetch_data() {
-    local url="$1"
-    response=$(curl -s "$url")
-    process_response "$response"
-}
+# Process and filter domains
+grep -Eo '^[^/]+(\.[^/]+)*$' "$temp_file" | awk -v domain="$domain" '
+{
+    gsub(/^\*\./, "", $0);
+    if ($0 ~ domain) {
+        print $0
+    }
+}' | sort -u > "$output_file"
 
-export -f process_response
-export -f fetch_data
-export domain
+# Remove temporary file
+rm "$temp_file"
 
-# Use xargs to handle threading
-result=$(echo "$url" | xargs -n 1 -P "$threads" bash -c 'fetch_data "$@"' _)
-
-# If output file is specified, save the results to the file
-if [[ -n "$output_file" ]]; then
-    echo "$result" > "$output_file"
-    echo "Results saved to $output_file"
-else
-    echo "$result"
-fi
-
-# Print completion message
-echo "Processing completed."
+# Print results to console
+echo "Domains extracted and saved to: $output_file"
+cat "$output_file"

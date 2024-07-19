@@ -14,7 +14,7 @@
 
 1\. Clone the repository and make the file executable:
 ```bash\
-git clone https://github.com/thgenetic/crtsh-domain-extractor.git && cd crtsh-domain-extractor && chmod +x crtsh_extractor.sh
+git clone https://github.com/thegenetic/crtsh-domain-extractor.git && cd crtsh-domain-extractor && chmod +x crtsh_extractor.sh
 ```
 
 ## Usage
